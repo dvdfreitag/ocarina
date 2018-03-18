@@ -5,8 +5,10 @@ BUILDDIR := $(THISDIR)/build
 INSTALLDIR := $(THISDIR)/install
 BINDIR := $(shell $(LLVM_CONFIG) --bindir)
 
+INCLUDE_DIRS := -isystem $(THISDIR)/musl/include -isystem $(THISDIR)/musl/arch/arm
+
 CC := $(BINDIR)/clang
-CC_FLAGS := -g -O3 -mthumb -mtune=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard --target=armv7em-none-eabi -MD -MP -ffreestanding -ffunction-sections -nostdlib -nostdlibinc -isystem $(THISDIR)/include
+CC_FLAGS := -g -O3 -mthumb -mtune=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard --target=armv7em-none-eabi -MD -MP -ffreestanding -ffunction-sections -nostdlib -nostdlibinc $(INCLUDE_DIRS)
 
 CXX := $(BINDIR)/clang++
 CXX_FLAGS := $(CC_FLAGS)
@@ -16,12 +18,17 @@ AR_FLAGS := -rcs
 
 .PHONY: all clean
 
-all: $(BUILDDIR)/Makefile
-	@echo Install dir: $(INSTALLDIR)
-	@mkdir -p $(INSTALLDIR)
-	@$(MAKE) VERBOSE=1 -C $(BUILDDIR) all
+all: $(INSTALLDIR)/lib/linux/libclang_rt.builtins-armv7em.a
 
-$(BUILDDIR)/Makefile:
+$(BUILDDIR)/musl/Makefile:
+	@mkdir -p $(@D)
+	@cd $(@D) && CC="$(CC)" CFLAGS="$(CC_FLAGS)" $(THISDIR)/musl/configure --prefix=$(INSTALLDIR) --target=armv7em-none-eabi --disable-shared
+
+$(INSTALLDIR)/lib/linux/libclang_rt.builtins-armv7em.a : $(BUILDDIR)/compiler-rt/Makefile
+	@mkdir -p $(@D)
+	@$(MAKE) -C $(BUILDDIR)/compiler-rt all install
+
+$(BUILDDIR)/compiler-rt/Makefile:
 	@mkdir -p $(@D)
 	@cd $(@D) && cmake -G "Unix Makefiles" $(THISDIR)/compiler-rt \
 		-DCOMPILER_RT_BAREMETAL_BUILD=ON \
