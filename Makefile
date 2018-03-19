@@ -11,7 +11,7 @@ ifeq ($(shell id -u), 0)
 endif
 
 ifeq ($(DEVICE),)
-    $(warning "No device set, no device-specific include directories will be added")
+    $(warning "No device set, no device-specific support will be added")
 else
     DEVICE_DIR := $(CMSIS_DIR)/devices/$(DEVICE)
     DEVICE_INCLUDE := -I$(DEVICE_DIR)/include
@@ -24,6 +24,10 @@ INCLUDE_DIRS := -isystem $(INSTALL_DIR)/include -isystem $(CMSIS_DIR)/include $(
 
 CC := $(BIN_DIR)/clang
 CC_FLAGS := -g -O3 -mthumb -mtune=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard --target=armv7em-none-eabi -MD -MP -ffreestanding -ffunction-sections -nostdlib -nostdlibinc -mimplicit-it=thumb $(INCLUDE_DIRS)
+
+ifneq ($(DEVICE),)
+CC_FLAGS += -D__$(shell echo $(DEVICE) | tr '[:lower:]' '[:upper:]')__
+endif
 
 CXX := $(BIN_DIR)/clang++
 CXX_FLAGS := $(CC_FLAGS)
